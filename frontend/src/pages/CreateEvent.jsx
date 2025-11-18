@@ -35,7 +35,7 @@ function CreateEvent() {
 
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/events',
+        'http://localhost:5050/api/events',
         formData,
         { headers: { 'x-auth-token': token } }
       );

@@ -24,13 +24,11 @@ function Login() {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
+      const response = await axios.post('http://localhost:5050/api/auth/login', formData);
       
-      // Store token and user data
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       
-      // Redirect to dashboard
       navigate('/dashboard');
       window.location.reload(); // Refresh to update navbar
     } catch (err) {

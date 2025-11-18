@@ -3,81 +3,117 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const auth = require('../middleware/auth');
 
-// Register User
+// =============================
+// REGISTER USER
+// =============================
 router.post('/register', async (req, res) => {
-  try {
-    const { name, email, password, role } = req.body;
+  const { name, email, password, role } = req.body;
 
+  try {
     // Check if user exists
     let user = await User.findOne({ email });
-    if (user) {
+    if (user)
       return res.status(400).json({ message: 'User already exists' });
-    }
 
     // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
+    // Create user
     user = new User({
       name,
       email,
       password: hashedPassword,
-      role: role || 'student'
+      role,
     });
 
     await user.save();
 
-    // Create JWT token
+    // Create token (IMPORTANT: use _id, NOT id)
     const payload = {
       user: {
-        id: user.id,
-        role: user.role
-      }
+        _id: user._id,
+      },
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey123', {
-      expiresIn: '7d'
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '1h',
     });
 
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    res.json({
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
 
-// Login User
+// =============================
+// LOGIN USER
+// =============================
 router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
   try {
-    const { email, password } = req.body;
-
-    // Check if user exists
-    const user = await User.findOne({ email });
-    if (!user) {
+    // Check user exists
+    let user = await User.findOne({ email });
+    if (!user)
       return res.status(400).json({ message: 'Invalid credentials' });
-    }
 
-    // Validate password
+    // Match password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
+    if (!isMatch)
       return res.status(400).json({ message: 'Invalid credentials' });
-    }
 
-    // Create JWT token
+    // Create token (use _id here too)
     const payload = {
       user: {
-        id: user.id,
-        role: user.role
-      }
+        _id: user._id,
+      },
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secretkey123', {
-      expiresIn: '7d'
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '1h',
     });
 
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    res.json({
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// =============================
+// GET LOGGED-IN USER
+// =============================
+router.get('/me', auth, async (req, res) => {
+  try {
+    // req.user._id comes from token payload
+    const user = await User.findById(req.user._id).select('-password');
+
+    if (!user)
+      return res.status(404).json({ message: 'User not found' });
+
+    res.json(user);
+
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

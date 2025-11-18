@@ -31,16 +31,22 @@ function UserDashboard() {
       </div>
 
       <div className="grid" style={{ marginTop: '2rem' }}>
+
+        {/* My Registered Events */}
         <div className="card">
           <h3 style={{ color: '#667eea' }}>📅 My Registered Events</h3>
           <p style={{ marginTop: '1rem', color: '#666' }}>
             View and manage your registered events here
           </p>
-          <button className="btn btn-secondary" style={{ marginTop: '1rem' }}>
-            View Events
-          </button>
+
+          <Link to="/my-events">
+            <button className="btn btn-secondary" style={{ marginTop: '1rem' }}>
+              View Events
+            </button>
+          </Link>
         </div>
 
+        {/* Notifications */}
         <div className="card">
           <h3 style={{ color: '#667eea' }}>🔔 Notifications</h3>
           <p style={{ marginTop: '1rem', color: '#666' }}>
@@ -51,6 +57,7 @@ function UserDashboard() {
           </button>
         </div>
 
+        {/* Organizer-only: Create Event */}
         {user.role === 'organizer' && (
           <div className="card">
             <h3 style={{ color: '#667eea' }}>➕ Create Event</h3>
@@ -66,6 +73,7 @@ function UserDashboard() {
         )}
       </div>
 
+      {/* Account Information */}
       <div className="card" style={{ marginTop: '2rem' }}>
         <h3 style={{ color: '#667eea' }}>Account Information</h3>
         <div style={{ marginTop: '1rem' }}>

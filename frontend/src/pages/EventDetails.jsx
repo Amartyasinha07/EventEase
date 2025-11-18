@@ -16,7 +16,7 @@ function EventDetails() {
 
   const fetchEventDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/events/${id}`);
+      const response = await axios.get(`http://localhost:5050/api/events/${id}`);
       setEvent(response.data);
     } catch (err) {
       console.error('Error fetching event:', err);
@@ -39,7 +39,7 @@ function EventDetails() {
 
     try {
       await axios.post(
-        `http://localhost:5000/api/events/${id}/register`,
+        `http://localhost:5050/api/events/${id}/register`,
         {},
         { headers: { 'x-auth-token': token } }
       );
