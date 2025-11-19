@@ -40,11 +40,17 @@ function CreateEvent() {
         { headers: { 'x-auth-token': token } }
       );
       
-      alert('Event created successfully!');
+      // Success - navigate to events page
       navigate('/events');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create event');
-      console.error('Error:', err);
+      console.error('Error creating event:', err);
+      
+      // Handle validation errors
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        setError(err.response.data.errors.join(', '));
+      } else {
+        setError(err.response?.data?.message || err.message || 'Failed to create event. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

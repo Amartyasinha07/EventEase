@@ -9,22 +9,58 @@ function EventDetails() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [registering, setRegistering] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   useEffect(() => {
-    fetchEventDetails();
+    const loadData = async () => {
+      await checkUserAuth();
+      await fetchEventDetails();
+    };
+    loadData();
   }, [id]);
+
+  const checkUserAuth = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await axios.get('http://localhost:5050/api/auth/me', {
+          headers: { 'x-auth-token': token }
+        });
+        setCurrentUserId(response.data._id);
+      } catch (err) {
+        console.error('Error fetching user:', err);
+        setCurrentUserId(null);
+      }
+    } else {
+      setCurrentUserId(null);
+    }
+  };
 
   const fetchEventDetails = async () => {
     try {
       const response = await axios.get(`http://localhost:5050/api/events/${id}`);
-      setEvent(response.data);
+      const eventData = response.data;
+      setEvent(eventData);
     } catch (err) {
       console.error('Error fetching event:', err);
-      setMessage('Event not found');
+      setMessage(err.response?.data?.message || 'Event not found');
     } finally {
       setLoading(false);
     }
   };
+
+  // Re-check registration status when currentUserId or event changes
+  useEffect(() => {
+    if (event && currentUserId) {
+      const userIdString = currentUserId.toString();
+      const registered = event.participants?.some(
+        participant => participant.toString() === userIdString || 
+                      (typeof participant === 'object' && participant._id && participant._id.toString() === userIdString)
+      );
+      setIsRegistered(registered || false);
+    }
+  }, [event, currentUserId]);
 
   const handleRegister = async () => {
     const token = localStorage.getItem('token');
@@ -44,6 +80,7 @@ function EventDetails() {
         { headers: { 'x-auth-token': token } }
       );
       setMessage('Successfully registered for the event!');
+      setIsRegistered(true);
       fetchEventDetails(); // Refresh event data
     } catch (err) {
       setMessage(err.response?.data?.message || 'Registration failed');
@@ -82,16 +119,30 @@ function EventDetails() {
           </div>
         )}
 
-        <button 
-          onClick={handleRegister}
-          className="btn btn-primary"
-          style={{ marginTop: '2rem' }}
-          disabled={registering || event.participants?.length >= event.maxParticipants}
-        >
-          {registering ? 'Registering...' : 
-           event.participants?.length >= event.maxParticipants ? 'Event Full' : 
-           'Register for Event'}
-        </button>
+        {!currentUserId ? (
+          <button 
+            onClick={() => navigate('/login')}
+            className="btn btn-primary"
+            style={{ marginTop: '2rem' }}
+          >
+            Login to Register
+          </button>
+        ) : isRegistered ? (
+          <div className="alert alert-success" style={{ marginTop: '2rem' }}>
+            ✓ You are registered for this event
+          </div>
+        ) : (
+          <button 
+            onClick={handleRegister}
+            className="btn btn-primary"
+            style={{ marginTop: '2rem' }}
+            disabled={registering || event.participants?.length >= event.maxParticipants}
+          >
+            {registering ? 'Registering...' : 
+             event.participants?.length >= event.maxParticipants ? 'Event Full' : 
+             'Register for Event'}
+          </button>
+        )}
       </div>
     </div>
   );

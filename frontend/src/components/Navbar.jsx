@@ -1,14 +1,27 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);
-  }, []);
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      setIsLoggedIn(!!token);
+    };
+    
+    // Check auth on mount and when route changes
+    checkAuth();
+    
+    // Listen for storage changes (e.g., login/logout in another tab)
+    window.addEventListener('storage', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+    };
+  }, [location.pathname]); // Re-check when route changes
 
   const handleLogout = () => {
     localStorage.removeItem('token');

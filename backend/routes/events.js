@@ -23,8 +23,14 @@ router.get('/:id', async (req, res) => {
     }
     res.json(event);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error fetching event:', err);
+    if (err.name === 'CastError') {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: err.message 
+    });
   }
 });
 
@@ -40,14 +46,28 @@ router.post('/', auth, async (req, res) => {
       date,
       venue,
       maxParticipants,
-      organizer: req.user.id
+      organizer: req.user._id
     });
 
     const event = await newEvent.save();
-    res.json(event);
+    res.status(201).json(event);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error creating event:', err);
+    
+    // Handle validation errors
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ 
+        message: 'Validation failed', 
+        errors: errors 
+      });
+    }
+    
+    // Handle other errors
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: err.message 
+    });
   }
 });
 
@@ -60,8 +80,13 @@ router.post('/:id/register', auth, async (req, res) => {
       return res.status(404).json({ message: 'Event not found' });
     }
 
-    // Check if already registered
-    if (event.participants.includes(req.user.id)) {
+    // Check if already registered - convert ObjectIds to strings for comparison
+    const userIdString = req.user._id.toString();
+    const isRegistered = event.participants.some(
+      participant => participant.toString() === userIdString
+    );
+    
+    if (isRegistered) {
       return res.status(400).json({ message: 'Already registered for this event' });
     }
 
@@ -70,13 +95,19 @@ router.post('/:id/register', auth, async (req, res) => {
       return res.status(400).json({ message: 'Event is full' });
     }
 
-    event.participants.push(req.user.id);
+    event.participants.push(req.user._id);
     await event.save();
+
+    // Populate organizer before sending response
+    await event.populate('organizer', 'name email');
 
     res.json({ message: 'Successfully registered for event', event });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error registering for event:', err);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: err.message 
+    });
   }
 });
 
