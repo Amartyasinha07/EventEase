@@ -19,23 +19,25 @@ function UserDashboard() {
     }
 
     setUser(JSON.parse(userData));
-    
     // Fetch events on mount to show count
-    const loadEvents = async () => {
-      try {
-        const response = await axios.get('http://localhost:5050/api/events', {
-          headers: { 'x-auth-token': token }
-        });
-        // Sort events by date (newest first)
-        const sortedEvents = response.data.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
-        setEvents(sortedEvents);
-      } catch (err) {
-        console.error('Error fetching events:', err);
-      }
-    };
-    
-    loadEvents();
+    fetchEventsForCount();
   }, [navigate]);
+
+  const fetchEventsForCount = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const response = await axios.get('http://localhost:5050/api/events', {
+        headers: { 'x-auth-token': token }
+      });
+      // Sort events by date (newest first)
+      const sortedEvents = response.data.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+      setEvents(sortedEvents);
+    } catch (err) {
+      console.error('Error fetching events:', err);
+    }
+  };
 
   const fetchEvents = async () => {
     const token = localStorage.getItem('token');
